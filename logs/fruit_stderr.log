@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "F:\FRUit\fruit\__main__.py", line 20, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "F:\FRUit\fruit\__main__.py", line 15, in main
+    from . import cli
+  File "F:\FRUit\fruit\cli.py", line 20, in <module>
+    from . import core, snapshots
+  File "F:\FRUit\fruit\core.py", line 23, in <module>
+    import comtypes
+ModuleNotFoundError: No module named 'comtypes'
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "F:\FRUit\fruit\__main__.py", line 20, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "F:\FRUit\fruit\__main__.py", line 15, in main
+    from . import cli
+  File "F:\FRUit\fruit\cli.py", line 20, in <module>
+    from . import core, snapshots
+  File "F:\FRUit\fruit\core.py", line 24, in <module>
+    from comtypes import client
+  File "F:\FRUit\.venv\Lib\site-packages\comtypes\client\__init__.py", line 16, in <module>
+    gen_dir = _find_gen_dir()
+  File "F:\FRUit\.venv\Lib\site-packages\comtypes\client\_code_cache.py", line 51, in _find_gen_dir
+    from comtypes import gen
+ImportError: cannot import name 'gen' from 'comtypes' (F:\FRUit\.venv\Lib\site-packages\comtypes\__init__.py)

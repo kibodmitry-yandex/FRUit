@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "saved_at": 1792359095.4980597,
+  "windows": [
+    {
+      "active": 0,
+      "geometry": {
+        "left": 211,
+        "top": 317,
+        "width": 1139,
+        "height": 713,
+        "state": "min"
+      },
+      "tabs": [
+        {
+          "path": "F:\\SDXL LORA V7",
+          "name": "SDXL LORA V7",
+          "virtual": false,
+          "url": "file:///F:/SDXL%20LORA%20V7"
+        }
+      ]
+    },
+    {
+      "active": 0,
+      "geometry": {
+        "left": 674,
+        "top": 301,
+        "width": 1139,
+        "height": 713,
+        "state": "min"
+      },
+      "tabs": [
+        {
+          "path": "F:\\DAZManager",
+          "name": "DAZManager",
+          "virtual": false,
+          "url": "file:///F:/DAZManager"
+        },
+        {
+          "path": "F:\\DAZManager\\modules\\clo",
+          "name": "clo",
+          "virtual": false,
+          "url": "file:///F:/DAZManager/modules/clo"
+        },
+        {
+          "path": "F:\\DAZManager\\modules\\med",
+          "name": "med",
+          "virtual": false,
+          "url": "file:///F:/DAZManager/modules/med"
+        },
+        {
+          "path": "F:\\DAZManager\\modules\\mybl",
+          "name": "mybl",
+          "virtual": false,
+          "url": "file:///F:/DAZManager/modules/mybl"
+        },
+        {
+          "path": "F:\\DAZManager\\modules\\mytg",
+          "name": "mytg",
+          "virtual": false,
+          "url": "file:///F:/DAZManager/modules/mytg"
+        },
+        {
+          "path": "C:\\Users\\kibod\\AppData\\Local\\Temp",
+          "name": "Temp",
+          "virtual": false,
+          "url": "file:///C:/Users/kibod/AppData/Local/Temp"
+        }
+      ]
+    },
+    {
+      "active": 0,
+      "geometry": {
+        "left": 113,
+        "top": 287,
+        "width": 1139,
+        "height": 713,
+        "state": "min"
+      },
+      "tabs": [
+        {
+          "path": "G:\\Downloads\\TV\\Перестроить (2025) Таиланд",
+          "name": "Перестроить (2025) Таиланд",
+          "virtual": false,
+          "url": "file:///G:/Downloads/TV/Перестроить%20(2025)%20Таиланд"
+        }
+      ]
+    },
+    {
+      "active": 0,
+      "geometry": {
+        "left": 489,
+        "top": 78,
+        "width": 1139,
+        "height": 713,
+        "state": "min"
+      },
+      "tabs": [
+        {
+          "path": "F:\\FRUit",
+          "name": "FRUit",
+          "virtual": false,
+          "url": "file:///F:/FRUit"
+        }
+      ]
+    }
+  ]
+}

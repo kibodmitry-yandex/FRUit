@@ -1,25 +1,5 @@
-# --- Python ---
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# FRUit: в репозиторий кладём ВСЁ, кроме виртуального окружения.
+# Окружение машинно-зависимое (и большое), поэтому оно и только оно исключено.
 
 # --- Виртуальные окружения ---
 .venv/
@@ -27,42 +7,12 @@ venv/
 ENV/
 env/
 
-# --- Сборка/инструменты ---
-*.spec
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
+# --- Байткод Python (генерируется автоматически, не часть проекта) ---
+__pycache__/
+*.py[cod]
+*$py.class
 
 # --- ОС ---
 Thumbs.db
 Desktop.ini
 .DS_Store
-
-# --- Локальные данные (не в репозиторий) ---
-# снапшоты живут в %LOCALAPPDATA%\FRUit, не здесь
-snapshots/
-*.fruit.json
-
-# --- Сгенерированное ---
-logs/
-FRUit.exe
-launcher/*.ico
-launcher/*.png
-
-# Отладочные артефакты (tools\)
-tools/out/
-
-# Одноразовые отладочные скрипты (в репозиторий не идут — см. tools\README.md)
-tools/probe*
-tools/check_*.py
-tools/smoke_*.py
-tools/cleanup_test*.py
-tools/test_cmd_forms.py
-tools/test_restore4.py
-tools/launch_and_check_log.py
-tools/echo_env.py
-tools/diag_launch_count.ps1
-tools/pyw_redirect_probe.py
-tools/run_redirect_probe.py
