@@ -5,8 +5,9 @@
     полные дубли групп/окон не добавляются повторно);
   * Восстановить все — открыть все запомненные раскладки;
   * список запомненных раскладок: группы вкладок — по первой вкладке
-    (маркер 🗂), отдельные окна — своим маркером (🗀); у каждого — подменю
-    «Восстановить» и «✕ Удалить»;
+    (маркер 🗂), отдельные окна — своим маркером (🗀); у каждого — подменю,
+    где СВЕРХУ состав записи (пункты только для чтения: что именно откроет
+    «Восстановить»), ниже — «Восстановить» и «✕ Удалить»; см. _entry_item();
   * Папка данных, Выход.
 
 Меню обновляется СРАЗУ после изменений: pystray строит HMENU один раз и на
@@ -17,6 +18,10 @@
 вызова (MenuItem._assert_action): 0 — action(), 1 — action(icon),
 2 — action(icon, item). Поэтому замыкание вида ``lambda i=eid: ...`` (один
 параметр!) получит в i САМ ЗНАЧОК, а не id записи — см. _entry_item().
+
+ЛОВУШКА Win32: в тексте пункта ``&`` помечает ускоряющую клавишу, поэтому
+амперсанды удваиваются — см. _menu_text(). Текст попадает в InsertMenuItem
+как есть, без обработки со стороны pystray.
 """
 
 from __future__ import annotations
@@ -123,14 +128,67 @@ def _open_data_dir() -> None:
 
 # --- сборка меню -----------------------------------------------------------
 
+# Превью состава записи в подменю: сколько вкладок показывать и как их помечать.
+PREVIEW_MAX = 12              # длинные группы обрезаем, чтобы меню не разрасталось
+PREVIEW_INDENT = "    "       # визуальный отступ строк состава
+PREVIEW_BULLET = "•"          # маркер строки состава
+
+
+def _menu_text(text: str) -> str:
+    """Готовит текст для пункта меню Win32.
+
+    В меню ``&`` — это префикс ускоряющей клавиши, а не символ: папка
+    «Prog & Data» превратилась бы в «Prog  Data» с подчёркнутой буквой.
+    Чтобы показать амперсанд буквально, его удваивают (``&&``). pystray
+    передаёт текст в AppendMenu/InsertMenuItem без обработки, поэтому
+    экранируем сами.
+    """
+    return str(text).replace("&", "&&")
+
+
 def _entry_text(e: dict) -> str:
     kind = e.get("kind", "window")
     label = e.get("label", "?")
     n = len(e.get("tabs", []))
     glyph = GROUP_GLYPH if kind == "group" else WINDOW_GLYPH
     if kind == "group":
-        return f"{glyph} {label} ({n} вкл)"
-    return f"{glyph} {label}"
+        return _menu_text(f"{glyph} {label} ({n} вкл)")
+    return _menu_text(f"{glyph} {label}")
+
+
+def _preview_lines(e: dict) -> list:
+    """Строки состава записи — что именно откроет «Восстановить».
+
+    Показываем имена вкладок, а где имя неоднозначно (в группе есть папки с
+    одинаковым именем) или вкладка одна — полный путь/адрес: иначе по имени
+    непонятно, какая из них какая. Длинные группы обрезаем (PREVIEW_MAX).
+    Эти строки уходят в подменю как пункты только для чтения (см. _entry_item).
+    """
+    tabs = e.get("tabs") or []
+    if not tabs:
+        return []
+
+    def short(t: dict) -> str:
+        return t.get("name") or t.get("path") or t.get("url") or "без имени"
+
+    def full(t: dict) -> str:
+        return t.get("path") or t.get("url") or short(t)
+
+    single = len(tabs) == 1
+    names = [short(t) for t in tabs]
+    repeated = set(n for n in names if names.count(n) > 1)
+
+    texts = []
+    for t, name in zip(tabs, names):
+        if single or name in repeated:
+            texts.append(full(t))
+        else:
+            texts.append(name)
+
+    if len(texts) > PREVIEW_MAX:
+        texts = texts[:PREVIEW_MAX] + ["… и ещё %d" % (len(texts) - PREVIEW_MAX)]
+
+    return [PREVIEW_INDENT + PREVIEW_BULLET + " " + _menu_text(t) for t in texts]
 
 
 def _entry_item(e: dict) -> pystray.MenuItem:
@@ -151,11 +209,19 @@ def _entry_item(e: dict) -> pystray.MenuItem:
     def do_delete():
         _async(lambda: delete_entry(eid))
 
-    sub = pystray.Menu(
-        pystray.MenuItem("Восстановить", do_restore),
-        pystray.MenuItem(f"{DELETE_GLYPH} Удалить", do_delete),
-    )
-    return pystray.MenuItem(_entry_text(e), sub)
+    items = []
+    # Состав записи — только чтение: без действия (action=None) и серым
+    # (enabled=False → MFS_DISABLED в меню Win32), отделён от действий чертой.
+    preview = _preview_lines(e)
+    if preview:
+        for line in preview:
+            items.append(pystray.MenuItem(line, None, enabled=False))
+        items.append(pystray.Menu.SEPARATOR)
+
+    items.append(pystray.MenuItem("Восстановить", do_restore))
+    items.append(pystray.MenuItem(f"{DELETE_GLYPH} Удалить", do_delete))
+
+    return pystray.MenuItem(_entry_text(e), pystray.Menu(*items))
 
 
 def _menu_items(icon):

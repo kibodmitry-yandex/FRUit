@@ -99,6 +99,60 @@ def main():
 
     menu = tray._make_menu(icon)
 
+    # --- состав записи: пункты только для чтения ВЫШЕ действий -------------
+    parent, sub = _entry_item_with(menu, "Восстановить")
+    sub_texts = [s.text for s in sub.items]
+    read_only = [s for s in sub.items if not s.enabled]
+    actions = [s for s in sub.items if s.enabled]
+
+    assert len(read_only) == 2, \
+        "ожидали 2 строки состава (2 вкладки), получили %r" % (sub_texts,)
+    for s in read_only:
+        assert s.submenu is None, "строка состава не должна иметь подменю"
+        assert "C:\\BETA" in s.text, "в составе нет пути вкладки: %r" % s.text
+    assert "Восстановить" in [s.text for s in actions]
+    assert sub_texts.index(read_only[0].text) < sub_texts.index("Восстановить"), \
+        "состав должен быть ВЫШЕ действий: %r" % (sub_texts,)
+    print("состав записи (только чтение) над действиями: %r"
+          % [s.text for s in read_only])
+
+    # клик по строке состава ничего не делает и ничего не ломает
+    state_before = groups.load()
+    ICON_CALLS[:] = []
+    _click(read_only[0], icon)
+    assert groups.load() == state_before, "клик по составу что-то изменил"
+    assert ICON_CALLS == [], "клик по составу ничего не должен запускать"
+
+    # --- _preview_lines: дубли имён, одиночка, обрезка длинных групп -------
+    two_same = _entry("dup", "DUP", "group", 2)          # имена вкладок совпадают
+    lines = tray._preview_lines(two_same)
+    assert len(lines) == 2 and all("C:\\DUP" in l for l in lines), lines
+
+    one = _entry("one", "ONE")
+    assert tray._preview_lines(one) == ["    • C:\\ONE0"], tray._preview_lines(one)
+
+    many = _entry("many", "MANY", "group", tray.PREVIEW_MAX + 3)
+    lines = tray._preview_lines(many)
+    assert len(lines) == tray.PREVIEW_MAX + 1, len(lines)
+    assert "… и ещё 3" in lines[-1], lines[-1]
+    print("превью: дубли -> полные пути, одиночка -> путь, обрезка -> %r"
+          % lines[-1])
+
+    # амперсанд в имени папки не должен стать «ускоряющей клавишей»
+    amp = {
+        "id": "amp", "kind": "group", "label": "AMP", "created": 1.0,
+        "active": 0, "geometry": None,
+        "tabs": [
+            {"path": "C:\\Prog & Data", "name": "Prog & Data",
+             "virtual": False, "url": ""},
+            {"path": "C:\\Other", "name": "Other", "virtual": False, "url": ""},
+        ],
+    }
+    assert "Prog && Data" in tray._preview_lines(amp)[0], tray._preview_lines(amp)
+    amp["label"] = "Prog & Data"          # и в заголовке записи тоже
+    assert "Prog && Data" in tray._entry_text(amp), tray._entry_text(amp)
+    print("амперсанд экранируется: %r" % tray._preview_lines(amp)[0])
+
     # --- Восстановить: id должен дойти до restore_entry -------------------
     parent, sub = _entry_item_with(menu, "Восстановить")
     _click(_sub_item(sub, "Восстановить"), icon)
