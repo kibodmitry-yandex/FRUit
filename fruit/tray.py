@@ -12,6 +12,11 @@
 Меню обновляется СРАЗУ после изменений: pystray строит HMENU один раз и на
 правый клик переиспользует его, callable-меню сам не пересчитывает — поэтому
 после снапшота/удаления явно вызывается icon.update_menu().
+
+ЛОВУШКА pystray: число параметров обработчика пункта меню ЗАДАЁТ способ
+вызова (MenuItem._assert_action): 0 — action(), 1 — action(icon),
+2 — action(icon, item). Поэтому замыкание вида ``lambda i=eid: ...`` (один
+параметр!) получит в i САМ ЗНАЧОК, а не id записи — см. _entry_item().
 """
 
 from __future__ import annotations
@@ -92,16 +97,24 @@ def restore_all() -> None:
 
 
 def restore_entry(entry_id: str) -> None:
+    """Восстанавливает одну запись (окно/группу) по id."""
     win = groups.entry_window(entry_id)
     if win is None:
+        _log(f"восстановление не удалось: запись {entry_id!r} не найдена")
         return
-    core.restore_state([win])
+    tabs = len(win.tabs)
+    summary = core.restore_state([win])
+    _log(f"восстановлена запись {entry_id}: окон {summary['opened']}, "
+         f"вкладок {summary['tabs']} (в записи {tabs})")
 
 
 def delete_entry(entry_id: str) -> None:
-    groups.remove(entry_id)
-    _log(f"удалена запись {entry_id}")
-    _refresh()                          # <- список сократится сразу
+    """Удаляет запись по id и сразу обновляет меню с подсказкой."""
+    if groups.remove(entry_id):
+        _log(f"удалена запись {entry_id}")
+    else:
+        _log(f"удаление не удалось: запись {entry_id!r} не найдена")
+    _refresh()
 
 
 def _open_data_dir() -> None:
@@ -121,10 +134,26 @@ def _entry_text(e: dict) -> str:
 
 
 def _entry_item(e: dict) -> pystray.MenuItem:
+    """Пункт меню одной запомненной раскладки (заголовок + подменю).
+
+    ВАЖНО: обработчики должны принимать НОЛЬ аргументов. pystray смотрит на
+    число параметров функции (MenuItem._assert_action) и для 0 — вызывает
+    action() без аргументов, для 1 — подставляет icon, для 2 — (icon, item).
+    Поэтому «lambda i=eid: ...» (это ОДИН параметр!) получал в i сам значок
+    pystray, а не id записи, и удаление молча ничего не делало. Замыкание
+    через вложенную def с нулём аргументов сохраняет eid корректно.
+    """
     eid = e.get("id")
+
+    def do_restore():
+        _async(lambda: restore_entry(eid))
+
+    def do_delete():
+        _async(lambda: delete_entry(eid))
+
     sub = pystray.Menu(
-        pystray.MenuItem("Восстановить", (lambda i=eid: _async(lambda: restore_entry(i)))),
-        pystray.MenuItem(f"{DELETE_GLYPH} Удалить", (lambda i=eid: _async(lambda: delete_entry(i)))),
+        pystray.MenuItem("Восстановить", do_restore),
+        pystray.MenuItem(f"{DELETE_GLYPH} Удалить", do_delete),
     )
     return pystray.MenuItem(_entry_text(e), sub)
 

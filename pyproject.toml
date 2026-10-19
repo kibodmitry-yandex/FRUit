@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fruit"
-version = "0.2.1"
+version = "0.2.2"
 description = "FRUit — Folder Restore Utility: сохранение и восстановление окон и вкладок Проводника Windows 11"
 readme = "README.md"
 requires-python = ">=3.9"

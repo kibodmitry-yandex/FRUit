@@ -11,3 +11,10 @@
 [FRUit] трей запущен, раскладок: 4
 [2026-10-19 00:40:48] запуск: F:\FRUit\.venv\Scripts\pythonw.exe -u -X utf8 -m fruit tray (cwd=F:\FRUit)
 [FRUit] трей запущен, раскладок: 4
+[FRUit] восстановлено: окон 4, вкладок 9
+[FRUit] удалена запись <pystray._win32.Icon object at 0x0000020FD6264590>
+[FRUit] снапшот: добавлено 2, дублей пропущено 1
+[FRUit] снапшот: добавлено 3, дублей пропущено 1
+[FRUit] удалена запись <pystray._win32.Icon object at 0x0000020FD6264590>
+[2026-10-19 11:23:39] запуск: F:\FRUit\.venv\Scripts\pythonw.exe -u -X utf8 -m fruit tray (cwd=F:\FRUit)
+[FRUit] трей запущен, раскладок: 9

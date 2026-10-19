@@ -10,7 +10,7 @@ FRU = Folder Restore Utility; «it» добавлено для читаемос�
 
 from __future__ import annotations
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 __all__ = ["core", "snapshots", "groups", "winapi", "tabs", "icons", "cli", "tray"]
 
 
