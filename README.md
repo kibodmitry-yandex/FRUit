@@ -1,204 +1,147 @@
+[English](README.md) · [Русский](README.ru.md) · [中文](README.zh.md)
+
 # FRUit — Folder Restore Utility
 
-**F**older **R**estore **U**tility (for **E**xplorer navigation) — «it» добавлено
-для читаемости, чтобы складывалось в «fruit».
+**F**older **R**estore **U**tility (for **E**xplorer navigation) — a Windows 11
+tool that saves Explorer windows with tabs and brings them back.
 
-Сохраняет и восстанавливает **окна и вкладки Проводника Windows 11**.
+Tired of reopening a dozen folders after every reboot — or worse, after an
+`explorer.exe` crash? Windows' own restore is unreliable and never works after
+a crash. FRUit remembers the layout and restores it: one group, one window, or
+everything at once.
 
-Надоело после каждой перезагрузки (или — что хуже — после аварийного
-перезапуска `explorer.exe`) заново открывать десяток папок? Системное
-восстановление работает нестабильно, а после краха — вообще не всегда.
-FRUit запоминает раскладку и возвращает её: по одной группе, по одному окну
-или всё сразу.
+## Features
 
-## Возможности
+- **Snapshot of windows and tabs** via `IShellWindows`; every tab is stored
+  by its unique address.
+- **Geometry and window state** (position, size, normal/maximized) restored
+  through `GetWindowPlacement` / `SetWindowPos`.
+- **Tray icon** (a folder with a banana): saved tab groups (🗂, by first tab)
+  and single windows (🗀). Each entry has a submenu — composition (grey,
+  read-only), *Restore*, *✕ Delete* — plus *Restore all*.
+- **No duplicates:** an identical set of tabs is never saved twice, and if a
+  layout is already open, its window is just brought to the front instead of
+  being opened again.
+- **Hotkeys:** `Ctrl+Alt+S` — snapshot, `Ctrl+Alt+R` — restore all.
+- **Quiet tray** — no console window; all errors go to `logs\fruit.log`
+  (rotated at 1 MB).
+- **Thin `FRUit.exe` launcher** — runs the current Python code with its own
+  environment; no rebuild after code changes.
+- **CLI with named snapshots** — layouts as work/home profiles.
 
-- **Снимок окон и вкладок.** Перечисляет открытые окна Проводника и все их
-  вкладки (через `IShellWindows`), запоминая «уникальный адрес» каждой вкладки.
-- **Геометрия и состояние.** Позиция, размер и состояние окна
-  (нормальное/развёрнутое) восстанавливаются через
-  `GetWindowPlacement`/`SetWindowPos`.
-- **Трей-режим с иконкой «папка с бананом»** — основной интерфейс: список
-  запомненных групп вкладок (🗂, по первой вкладке) и отдельных окон (🗀); у
-  каждой записи — подменю: сверху состав (что именно откроется, серыми только
-  для чтения), ниже «Восстановить» и «✕ Удалить». Плюс «Восстановить все».
-- **Накапливаемый список с дедупликацией.** «Сделать снапшот» добавляет
-  текущие окна, но не плодит полные дубли: одинаковый набор вкладок второй
-  раз не записывается.
-- **Горячие клавиши:** `Ctrl+Alt+S` — сделать снапшот, `Ctrl+Alt+R` —
-  восстановить все.
-- **Тонкий exe-лаунчер** `FRUit.exe` (как у модуля mybl): запускает текущий
-  Python-код своим окружением, пересобирать после правок не нужно.
-- **Тихий запуск трея.** `FRUit.exe` без аргументов (или `tray`) показывает
-  только значок в трее — окна консоли нет. Все сообщения и ошибки пишутся в
-  `logs\fruit.log` (файл не растёт бесконечно: при 1 МБ уходит в `fruit.log.1`).
-- **Именованные снапшоты из CLI** — для «профилей» раскладок (работа/дом).
+## Install
 
-## Возможности (трей-меню)
+Requirements: Windows 11 and internet access (for Python and pip).
 
-```
-Сделать снапшот                      ← запомнить текущие группы/окна (без дублей)
-Восстановить все                     — открыть всё из списка
-────────────────────────────────────
-🗂 DAZManager (7 вкл)   ├  • DAZManager   ┐ состав группы:
-                        ├  • clo          │ серые пункты только для чтения,
-                        ├  • med          │ видно, что именно откроется
-                        ├  • modules      │ (у одиночных окон — полный путь)
-                        ├  • swc          ┘
-                        ├ ──────────────
-                        ├  Восстановить
-                        └  ✕ Удалить
-🗀 TV                    ├  • G:\Downloads\TV
-                        ├ ──────────────
-                        ├  Восстановить
-                        └  ✕ Удалить
-🗀 SDXL LORA V7          → Восстановить | ✕ Удалить
-────────────────────────────────────
-Папка данных                         — открыть каталог с данными
-Выход
-```
+**Easiest way:**
 
-У каждой строки раскладки — подменю: сверху состав записи (серые пункты только
-для чтения — что именно откроет «Восстановить»), ниже «Восстановить» и
-«✕ Удалить». Клик по строке раскладки открывает подменю: Win32-меню не делит
-строку на две кликабельные зоны, а клик по пункту с подменю ВСЕГДА открывает
-подменю — отдельной кнопки «восстановить» в строке сделать нельзя, это
-свойство системного меню, а не выбор реализации.
+1. Download the repository as a ZIP (*Code → Download ZIP*) or clone it:
+   `git clone https://github.com/kibodmitry-yandex/FRUit.git`
+2. Double-click **`install.bat`**: it finds Python 3.9+ (installs it silently
+   via winget if missing), creates `.venv` and installs the dependencies.
+3. Start **`FRUit.exe`** — the tray icon appears.
 
-Если раскладка уже открыта, она НЕ дублируется: окно, содержащее все вкладки
-восстанавливаемой раскладки, выводится на передний план
-(`core.find_matching_window` + `winapi.focus_window`), его геометрия и активная
-вкладка не меняются.
-
-Состав группы — это строки-превью: они отключены (`enabled=False`), поэтому
-по ним нельзя кликнуть, и они серые. Если в группе есть папки с одинаковым
-именем, показывается полный путь (иначе непонятно, какая из них какая);
-очень длинные группы обрезаются строкой «… и ещё N».
-
-## Как это работает
-
-- Перечисление окон и вкладок — `IShellWindows` (вкладки группируются по HWND).
-- Первая вкладка окна открывается через `explorer.exe`.
-- Остальные вкладки добавляются Invoke кнопки `Add New Tab` (UI Automation) и
-  навигируются адресно через `IWebBrowser2.Navigate`.
-- Если вкладку добавить не удалось — папка открывается **отдельным окном**
-  (откат), чтобы ни одна папка не потерялась.
-- Геометрия окна — `GetWindowPlacement` / `SetWindowPos`.
-
-### Почему не «чистый» API вкладок
-
-В Windows 11 вкладки Проводника реализованы внутри на XAML/WinUI и **не
-экспонированы для сторонней автоматизации** — официального API их создания
-нет (см. [Microsoft Learn](https://learn.microsoft.com/en-us/answers/questions/5852400/)).
-FRUit использует UI Automation только для `Invoke` кнопки «новая вкладка», а
-навигацию делает надёжно через `Navigate`. Отсюда и откат на отдельное окно.
-
-## Установка
-
-Нужны Windows 11 и Python 3.9+.
+Manual alternative:
 
 ```bat
-git clone https://github.com/ВАШ_ЮЗЕР/fruit.git
-cd fruit
 py -3 -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Собственный `.venv` рекомендован: тогда `FRUit.exe` работает предсказуемо
-(не зависит от того, какой `python.exe` первым окажется в `PATH`). Для трея
-и exe нужны `comtypes`, `pystray`, `Pillow`, `pynput`.
+`FRUit.exe` uses the repository's own `.venv`, so keep the folder in place.
 
-## Использование
+## Usage
 
-### Трей (основной режим)
+### Tray (main mode)
 
-Двойной клик по `FRUit.exe` (или `python -m fruit tray`) — появится значок
-«папка с бананом» в системном трее (окно консоли не открывается).
+Double-click `FRUit.exe` — a folder icon with a banana appears in the system
+tray (no console). Right-click → menu:
 
-Правый клик → меню:
-
-- **Сделать снапшот** — запомнить текущие группы вкладок и окна (дубли не
-  добавляются);
-- **Восстановить все** — открыть всё из списка;
-- **список записей** — группа = 🗂 и первая вкладка; отдельное окно = 🗀; у
-  каждой записи подменю, где сверху **состав** (серые пункты только для
-  чтения: список вкладок группы; у одиночного окна — полный путь), ниже —
-  «Восстановить» и «✕ Удалить»; восстановление уже открытой раскладки выводит
-  окно на передний план, без дубликата;
-- **Выход**.
-
-Состав — то же, что откроет «Восстановить»: если у двух записей совпадает
-первая вкладка, по составу их можно различить, не восстанавливая.
-Посмотреть меню текстом, не открывая трей:
-
-```bat
-.venv\Scripts\python.exe tools\dump_menu.py
+```
+Take snapshot                      ← save current windows/tabs (no duplicates)
+Restore all                        ← open everything from the list
+────────────────────────────────────
+🗂 Projects (5 tabs)   ┐ composition of the group (grey, read-only):
+        • src • docs   │ what exactly "Restore" will open;
+        • tests • media┘ for a single window — its full path
+        ────────────────────────
+        Restore
+        ✕ Delete🗀 Downloads
+        • C:\Users\me\Downloads
+        ────────────────────────
+        Restore
+        ✕ Delete
+────────────────────────────────────
+Data folder
+Exit
 ```
 
-Горячие клавиши (глобальные): `Ctrl+Alt+S` — снапшот, `Ctrl+Alt+R` —
-восстановить все.
+The tray menu is currently in Russian:
 
-Данные трея — в `%LOCALAPPDATA%\FRUit\groups.json`.
+| Menu item | Meaning |
+|---|---|
+| Сделать снапшот | Take snapshot |
+| Восстановить все | Restore all |
+| Восстановить | Restore |
+| ✕ Удалить | ✕ Delete |
+| Папка данных | Data folder |
+| Выход | Exit |
 
-### Командная строка (именованные снапшоты)
+Global hotkeys: `Ctrl+Alt+S` — snapshot, `Ctrl+Alt+R` — restore all.
+Saved layouts live in `%LOCALAPPDATA%\FRUit\groups.json`.
+
+### Command line (named snapshots)
 
 ```bat
-fruit save work                     :: сохранить текущую раскладку под именем work
-fruit list                          :: список снапшотов
-fruit restore work                  :: восстановить (вкладки собираются в окна)
-fruit restore work --no-tabs        :: надёжнее: каждая папка отдельным окном
-fruit restore latest                :: восстановить самый свежий снапшот
-fruit delete work                   :: удалить снапшот
+FRUit.exe save work                      :: save current layout as "work"
+FRUit.exe list                           :: list snapshots
+FRUit.exe restore work                   :: restore (tabs are grouped into windows)
+FRUit.exe restore work --no-tabs         :: more reliable: every folder in its own window
+FRUit.exe restore latest                 :: restore the newest snapshot
+FRUit.exe delete work                    :: delete a snapshot
 ```
 
-Через exe то же самое: `FRUit.exe list`, `FRUit.exe restore work`.
-Без установки: `python -m fruit save work`.
+Data: `%LOCALAPPDATA%\FRUit` — `snapshots\*.json` (named snapshots) and
+`groups.json` (tray list); override the folder with `FRUIT_DATA`.
+`FRUIT_HOME` is something else: the folder containing the `fruit` package,
+used by the launcher.
 
-### Где хранятся данные
+## How it works
 
-По умолчанию в `%LOCALAPPDATA%\FRUit`:
+- Windows and tabs are enumerated with `IShellWindows` (tabs are grouped by
+  window handle).
+- The first tab opens via `explorer.exe`; the rest are added by invoking the
+  *Add New Tab* button (UI Automation) and navigated with
+  `IWebBrowser2.Navigate`.
+- If a tab cannot be added, the folder opens as a **separate window**
+  (fallback) — no folder is ever lost.
+- Geometry: `GetWindowPlacement` / `SetWindowPos`.
 
-- `snapshots\*.json` — именованные снапшоты (командная строка);
-- `groups.json` — накапливаемый список групп/окон (трей).
+Windows 11 implements Explorer tabs inside XAML/WinUI and exposes no official
+API for them ([Microsoft Learn](https://learn.microsoft.com/en-us/answers/questions/5852400/)),
+hence UI Automation plus the fallback.
 
-Каталог данных переопределяется переменной окружения `FRUIT_DATA`.
+## Limitations
 
-`FRUIT_HOME` — это другое: каталог с **пакетом** `fruit` (нужен exe-лаунчеру,
-если он лежит не в корне репозитория и не может найти пакет сам).
+- **Tabs via UI Automation.** If the button or navigation is unavailable, the
+  layout is restored with separate windows: close, but complete.
+- **No icons on menu items** (Win32/pystray) — groups and windows are marked
+  with glyphs 🗂 / 🗀.
+- **A menu row is a single click zone.** A click on an entry opens its
+  submenu, so *Restore* lives inside it rather than on the row itself.
+- **Virtual folders** (This PC, Quick Access, Recycle Bin) have no file path
+  and are skipped with a warning; only `CabinetWClass` windows are handled.
+- **`&` in folder names** is doubled in menu text (the Win32 mnemonic rule).
 
-## Разработка
+## Development
 
-- `launcher\` — исходник тонкого exe (`FruitLauncher.cs`), `build_launcher.bat`
-  (сборка `FRUit.exe` системным `csc.exe`) и генератор иконки `make_icon.py`.
-- `tools\` — вспомогательные скрипты отладки (диагностика трея, проверки,
-  «текстовый» просмотр иконки). В поставку не входят.
-- Иконка — `launcher\logo.png` (нарисована вручную); `make_icon.py` собирает
-  из неё `fruit.ico` / `fruit.png` (кадры 16…256 px, каждый уменьшается
-  пошагово, чтобы мелкие размеры оставались чистыми). Если png нет, значок
-  рисуется кодом Pillow — трей и сборка exe от этого не ломаются.
+- `launcher\` — thin exe source (`FruitLauncher.cs`), `build_launcher.bat`
+  (system `csc.exe`) and the icon generator `make_icon.py`.
+- `tools\` — dev and test scripts; not part of the distribution.
+- Icon: `launcher\logo.png` → `python launcher\make_icon.py` rebuilds
+  `fruit.ico` / `fruit.png` (frames 16…256 px). Without the PNG the icon is
+  drawn by Pillow code, so nothing breaks.
 
-## Ограничения
+## License
 
-- **Восстановление вкладок — через UI Automation.** Официального API вкладок
-  нет; при недоступности кнопки/навигации папка открывается отдельным окном.
-  Раскладка восстанавливается максимально близко, но папки **не теряются**.
-- **Иконки у пунктов меню.** Win32-меню в pystray не поддерживает картинки у
-  элементов, поэтому «группа/окно» различаются глифами 🗂/🗀 и текстом.
-- **Строка меню — одна зона клика.** Win32-HMENU не делит строку на две
-  кликабельные зоны: клик по пункту с подменю всегда открывает подменю.
-  Поэтому у каждой раскладки подменю (состав + «Восстановить» + «✕ Удалить»),
-  а не кнопка «восстановить» в самой строке — это свойство системного меню
-  Windows, обойти его нельзя.
-- **Состав записи — пункты только для чтения.** Они отключены
-  (`enabled=False`): по ним нельзя кликнуть, Win32 рисует их серыми. Раз это
-  по-прежнему пункты меню, они не «сворачиваются» и не зависят от наведения.
-- **Амперсанд в именах папок.** В меню Win32 `&` помечает ускоряющую клавишу,
-  поэтому в текстах пунктов он удваивается (`Prog & Data` → `Prog && Data`) —
-  иначе амперсанд исчезал бы, а следующая буква подчёркивалась.
-- **Виртуальные папки** («Этот компьютер», «Быстрый доступ», «Корзина») не
-  имеют файлового адреса — при восстановлении пропускаются с предупреждением.
-- Работает только с окнами класса `CabinetWClass` (файловый Проводник).
-
-## Лицензия
-
-MIT — см. [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).

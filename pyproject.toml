@@ -32,7 +32,8 @@ fruit = "fruit.cli:main"
 fruit-tray = "fruit.tray:run"
 
 [project.urls]
-Homepage = "https://github.com/FRUit/fruit"
+Homepage = "https://github.com/kibodmitry-yandex/FRUit"
+Repository = "https://github.com/kibodmitry-yandex/FRUit"
 
 [tool.setuptools.packages.find]
 include = ["fruit*"]
