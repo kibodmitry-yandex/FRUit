@@ -7,6 +7,8 @@
   * Геометрия окна читается через GetWindowPlacement/GetWindowRect.
 
 Восстановление надёжное:
+  * раскладка, которая уже открыта, НЕ дублируется — окно выводится на
+    передний план (см. find_matching_window/focus_window);
   * первая вкладка окна открывается через SHOpenFolderAndSelectItems;
   * остальные вкладки добавляются Invoke кнопки «Add New Tab» и навигируются
     адресно через IWebBrowser2.Navigate (без «хлебных крошек» и клавиатуры);
@@ -45,6 +47,7 @@ class Window:
     tabs: List[Tab] = field(default_factory=list)
     active: int = 0                     # индекс активной вкладки
     geometry: Optional[winapi.WindowGeometry] = None
+    hwnd: int = 0                       # HWND окна (0 — если не из съёма)
 
 
 def _shell_windows():
@@ -105,9 +108,36 @@ def capture_state() -> List[Window]:
         if active is None or active < 0 or active >= len(tablist):
             active = 0
         geo = winapi.get_window_geometry(hwnd)
-        windows.append(Window(tabs=tablist, active=active, geometry=geo))
+        windows.append(Window(tabs=tablist, active=active, geometry=geo,
+                              hwnd=hwnd))
 
     return windows
+
+
+def tab_key(t: Tab) -> str:
+    """Нормализованный ключ вкладки для сравнения раскладок между собой."""
+    return (t.path or t.url or t.name or "").replace("/", "\\").lower().rstrip("\\")
+
+
+def find_matching_window(current: List[Window], saved_tabs) -> Optional[Window]:
+    """Ищет уже открытое окно, содержащее ВСЕ вкладки сохранённой раскладки.
+
+    Так восстановление НЕ создаёт дубликат: окно просто выводится на передний
+    план (winapi.focus_window). Среди подходящих выбирается самое «узкое» —
+    с наименьшим числом вкладок, то есть точное совпадение набора вкладок
+    важнее окна, где эти вкладки лишь часть общего набора.
+    """
+    want = {tab_key(t) for t in saved_tabs if not t.virtual}
+    want.discard("")
+    if not want:
+        return None
+    best: Optional[Window] = None
+    best_size = None
+    for w in current:
+        have = {tab_key(t) for t in w.tabs}
+        if want <= have and (best_size is None or len(have) < best_size):
+            best, best_size = w, len(have)
+    return best
 
 
 def _find_window_hwnd_by_path(path: str, timeout: float = 6.0) -> Optional[int]:
@@ -181,19 +211,35 @@ def _wait_tab_location(hwnd: int, path: str, timeout: float = 3.0) -> bool:
 
 def restore_state(windows: List[Window], group_tabs: bool = True,
                   pause: float = 0.4) -> dict:
-    """Восстанавливает окна. Возвращает сводку {opened, tabs, fallback}.
+    """Восстанавливает окна. Возвращает сводку {opened, tabs, fallback, focused}.
 
     group_tabs=True — вкладки одного окна собираются обратно в одно окно;
     иначе каждая папка открывается отдельным окном (просто и максимально
     надёжно).
+
+    Уже открытая раскладка НЕ дублируется: если среди текущих окон есть окно,
+    содержащее все вкладки восстанавливаемого окна, оно просто выводится на
+    передний план (summary['focused']), без пересоздания и без изменения его
+    геометрии/активной вкладки.
     """
-    summary = {"opened": 0, "tabs": 0, "fallback": 0}
-    first_hwnds: List[int] = []
+    summary = {"opened": 0, "tabs": 0, "fallback": 0, "focused": 0}
+    opened: List[Window] = []
+
+    # что открыто прямо сейчас (обновляется после каждого открытого окна,
+    # чтобы два похожих окна из одной раскладки не задублировали друг друга)
+    current = capture_state()
 
     for win in windows:
         real_tabs = [t for t in win.tabs if not t.virtual and t.path]
         if not real_tabs:
             continue
+
+        existing = find_matching_window(current, real_tabs)
+        if existing is not None and winapi.focus_window(existing.hwnd):
+            summary["focused"] += 1
+            continue
+
+        opened.append(win)
 
         # первая вкладка -> окно
         first = real_tabs[0]
@@ -209,9 +255,9 @@ def restore_state(windows: List[Window], group_tabs: bool = True,
             for t in real_tabs[1:]:
                 winapi.launch_folder(t.path)
                 summary["opened"] += 1
+            current = capture_state()
             continue
 
-        first_hwnds.append(hwnd)
         summary["tabs"] += 1  # первая вкладка
 
         # остальные вкладки -> в то же окно
@@ -223,11 +269,11 @@ def restore_state(windows: List[Window], group_tabs: bool = True,
                 summary["opened"] += 1
                 summary["fallback"] += 1
 
+        current = capture_state()
         time.sleep(pause)
 
-    # геометрия и активная вкладка — по окнам, которые удалось сгруппировать
-    restored = [w for w in windows]
-    _apply_geometry_and_active(windows, group_tabs)
+    # геометрия и активная вкладка — только по окнам, которые мы открыли сами
+    _apply_geometry_and_active(opened, group_tabs)
 
     return summary
 

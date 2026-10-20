@@ -125,6 +125,60 @@ def set_window_geometry(hwnd: int, geo: WindowGeometry) -> bool:
     return True
 
 
+kernel32 = ctypes.windll.kernel32
+
+# прототипы для вывода окна на передний план (без них ctypes обрезает HWND
+# до 32 бит и «привязка ввода» уходит не туда)
+user32.GetForegroundWindow.argtypes = []
+user32.GetForegroundWindow.restype = wintypes.HWND
+user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, wintypes.LPDWORD]
+user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+user32.SetForegroundWindow.restype = wintypes.BOOL
+user32.BringWindowToTop.argtypes = [wintypes.HWND]
+user32.BringWindowToTop.restype = wintypes.BOOL
+user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD,
+                                     wintypes.BOOL]
+user32.AttachThreadInput.restype = wintypes.BOOL
+user32.IsIconic.argtypes = [wintypes.HWND]
+user32.IsIconic.restype = wintypes.BOOL
+user32.IsWindow.argtypes = [wintypes.HWND]
+user32.IsWindow.restype = wintypes.BOOL
+kernel32.GetCurrentThreadId.argtypes = []
+kernel32.GetCurrentThreadId.restype = wintypes.DWORD
+
+
+def focus_window(hwnd: int) -> bool:
+    """Выводит уже открытое окно на передний план вместо создания дубликата.
+
+    Разворачивает свёрнутое окно и делает его активным. Windows ограничивает
+    SetForegroundWindow для фоновых процессов (foreground lock), поэтому если
+    окно не встало вперёд, ввод текущего потока привязывается к потоку текущего
+    foreground-окна (классический приём AttachThreadInput) и попытка повторяется.
+    Возвращает True, если окно в итоге стало передним.
+    """
+    if not hwnd or not user32.IsWindow(hwnd):
+        return False
+    if user32.IsIconic(hwnd):
+        user32.ShowWindow(wintypes.HWND(hwnd), SW_RESTORE)
+
+    fg = user32.GetForegroundWindow()
+    if fg == hwnd:
+        return True
+
+    tid_cur = kernel32.GetCurrentThreadId()
+    tid_fg = user32.GetWindowThreadProcessId(fg, None) if fg else 0
+    attached = bool(tid_fg) and tid_fg != tid_cur and bool(
+        user32.AttachThreadInput(tid_cur, tid_fg, True))
+    try:
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+    finally:
+        if attached:
+            user32.AttachThreadInput(tid_cur, tid_fg, False)
+    return user32.GetForegroundWindow() == hwnd
+
+
 def url_to_path(url: str) -> Tuple[Optional[str], bool]:
     """file:// URL -> файловый путь.
 

@@ -7,6 +7,12 @@
 получали объект Icon вместо строки-id, и удаление молча ничего не делало
 (groups.remove возвращает False, если id не найден).
 
+Структура меню: строка раскладки открывает подменю, где сверху состав записи
+(пункты только для чтения), ниже «Восстановить» и «✕ Удалить». Клик по строке
+раскладки открыть подменю — а не восстановить: Win32-HMENU не делит строку на
+две кликабельные зоны, и обойти это нельзя, поэтому отдельной кнопки
+«восстановить» в строке нет.
+
 Тест бьёт по реальному пути pystray: ``menu.items -> MenuItem -> item(icon)``,
 то есть ровно то, что делает backend при клике. Данные — в
     `tools/out/test_tray_menu` (реальный %LOCALAPPDATA% не трогаем).
@@ -27,7 +33,7 @@ except Exception:
 import pystray
 
 from fruit import groups, tray
-from fruit.icons import DELETE_GLYPH
+from fruit.icons import DELETE_GLYPH, GROUP_GLYPH, WINDOW_GLYPH
 
 ICON_CALLS = []
 
@@ -98,6 +104,19 @@ def main():
     tray.restore_entry = lambda eid: restored.append(eid)
 
     menu = tray._make_menu(icon)
+
+    # --- строка раскладки в основном меню: подменю, без мёртвых ▶ ----------
+    entry_rows = [it for it in menu.items
+                  if getattr(it, "submenu", None) is not None
+                  and any(g in getattr(it, "text", "")
+                          for g in (GROUP_GLYPH, WINDOW_GLYPH))]
+    assert len(entry_rows) == 2, \
+        "ожидали 2 строки раскладок, получили %r" % ([r.text for r in entry_rows],)
+    for row in entry_rows:
+        assert "\u25b6" not in row.text, \
+            "\u043c\u0451\u0440\u0442\u0432\u044b\u0439 \u0434\u0435\u043a\u043e\u0440 \u25b6 \u0432 \u0441\u0442\u0440\u043e\u043a\u0435: %r" % row.text
+    print("строки раскладок: %r (каждая со своим подменю)"
+          % [r.text for r in entry_rows])
 
     # --- состав записи: пункты только для чтения ВЫШЕ действий -------------
     parent, sub = _entry_item_with(menu, "Восстановить")
@@ -202,4 +221,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-  

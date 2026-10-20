@@ -63,7 +63,8 @@ def _cmd_restore(args) -> int:
     summary = core.restore_state(windows, group_tabs=not args.no_tabs)
     print(
         f"Восстановлено «{name}»: открыто окон {summary['opened']}, "
-        f"сгруппировано вкладок {summary['tabs']}, откатов на окна {summary['fallback']}"
+        f"сгруппировано вкладок {summary['tabs']}, откатов на окна {summary['fallback']}, "
+        f"уже открытые выведены на передний план: {summary.get('focused', 0)}"
     )
     return 0
 

@@ -1,24 +1,67 @@
-"""FRUit — иконки, рисуемые Pillow (без бинарных ассетов в репозитории).
+"""FRUit — иконки.
 
-  * app_icon(size)     — главная иконка: папка (со стеком), а сверху — банан
-                         (значок в трее и у exe).
+  * app_icon(size)     — главная иконка: папка с бананом (значок в трее и у
+                         exe). Источник — launcher\\logo.png (нарисован
+                         вручную, «максимальное качество»); если файла нет —
+                         та же иконка рисуется кодом Pillow (см. _draw_icon).
   * GROUP_GLYPH / WINDOW_GLYPH / DELETE_GLYPH — символы пунктов меню.
 
 Почему глифы, а не иконки у пунктов меню: Win32-бэкенд pystray не умеет
 рисовать картинки у элементов контекстного меню. Поэтому «группа/окно»
 передаётся символом в тексте пункта.
 
-Ключевое требование — иконка должна читаться в размере трея (16 px). Поэтому:
-  * банан — отдельный от папки элемент (висит над ней, в основном на прозрачном
-    фоне), а не «пятно» на папке;
-  * у банана тёмный контур и тёмные кончики — даже если цвета сливаются при
-    уменьшении, силуэт остаётся читаемым;
-  * банан ярче папки, папка — заметно оранжевее.
+Путь к логотипу ищется так (первый существующий):
+  1. переменная окружения FRUIT_LOGO (путь к png);
+  2. logo.png рядом с этим модулем (fruit\\logo.png);
+  3. launcher\\logo.png — в корне репозитория.
+Если нигде нет — рисуем иконку кодом, чтобы при переезде/установке без
+ассетов трей и exe не ломались.
 """
 
 from __future__ import annotations
 
+import os
+
 from PIL import Image, ImageDraw
+
+LOGO_NAME = "logo.png"
+
+# Кеш: открытая один раз картинка логотипа (полный размер, RGBA).
+_LOGO_SRC = None
+
+
+def logo_path():
+    """Путь к launcher\\logo.png (или None, если ассета нет)."""
+    env = os.environ.get("FRUIT_LOGO")
+    if env:
+        return env if os.path.isfile(env) else None
+    here = os.path.dirname(os.path.abspath(__file__))
+    for p in (os.path.join(here, LOGO_NAME),
+              os.path.join(os.path.dirname(here), "launcher", LOGO_NAME)):
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def _logo_src() -> Image.Image:
+    global _LOGO_SRC
+    if _LOGO_SRC is None:
+        _LOGO_SRC = Image.open(logo_path()).convert("RGBA")
+    return _LOGO_SRC
+
+
+def _fit(im: Image.Image, size: int) -> Image.Image:
+    """Уменьшает КВАДРАТНУЮ картинку до size пошагово (вдвое за проход).
+
+    LANCZOS сразу с 4096 до 16 даёт артефакты огибающих (aliasing): фильтр
+    «не видит» пиксели между отобранными. Пошаговое деление вдвое сохраняет
+    края, финальный проход — добивает до точного размера.
+    """
+    w, h = im.size
+    while w > size * 2 and h > size * 2:
+        w, h = max(size, w // 2), max(size, h // 2)
+        im = im.resize((w, h), Image.LANCZOS)
+    return im.resize((size, size), Image.LANCZOS)
 
 # Папка — насыщенный тёмно-оранжевый (чтобы банан отличался по яркости)
 _FOLDER = (226, 132, 16)
@@ -69,8 +112,8 @@ def _banana(d: ImageDraw.ImageDraw, u: float, cx: float, cy: float,
            fill=_BANANA_TIP, width=max(1, int(1.5 * u)))
 
 
-def app_icon(size: int = 64) -> Image.Image:
-    """Иконка FRUit: стопка папок, а над ней — банан."""
+def _draw_icon(size: int = 64) -> Image.Image:
+    """Иконка кодом: стопка папок, а над ней — банан (запасной вариант)."""
     s = size
     img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
@@ -93,6 +136,22 @@ def app_icon(size: int = 64) -> Image.Image:
     _banana(d, u, cx=32, cy=9, w=48, h_out=25, h_in=8.0)
 
     return img
+
+
+def app_icon(size: int = 64) -> Image.Image:
+    """Главный значок FRUit (трей, exe): launcher\\logo.png, иначе — рисунок.
+
+    Размер проверен глазами пользователя в трее: раньше здесь был рисунок
+    64px, теперь та же точка входа отдаёт уменьшенный логотип — пайплайн
+    (pystray -> HICON, csc /win32icon) не меняется.
+    """
+    path = logo_path()
+    if path:
+        try:
+            return _fit(_logo_src(), size)
+        except Exception:
+            pass            # битый png — не роняем трей, рисуем иконку кодом
+    return _draw_icon(size)
 
 
 def tray_icon(size: int = 64) -> Image.Image:
